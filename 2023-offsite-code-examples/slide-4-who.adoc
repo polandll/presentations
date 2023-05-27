@@ -1,0 +1,7 @@
+=== Who
+
+* We can get contributions from anyone
+** Company employees
+** External users
+
+* We need a simple process for everyone to follow

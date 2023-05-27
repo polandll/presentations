@@ -1,0 +1,3 @@
+=== Where
+
+* Every Antora-structured directory should have an `examples` directory in every module that requires code examples

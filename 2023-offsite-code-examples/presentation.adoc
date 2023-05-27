@@ -1,0 +1,20 @@
+= Docs Team 2023 offsite
+
+Lorina Poland
+Jun 1-5, 2023
+
+include::slide-2-reasons.adoc[]
+
+include::slide-3-why.adoc[]
+
+include::slide-4-who.adoc[]
+
+include::slide-5-what.adoc[]
+
+include::slide-6-where.adoc[]
+
+include::slide-7-how.adoc[]
+
+include::slide-8-stargate.adoc[]
+
+include::slide-9-testing.adoc[]

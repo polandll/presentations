@@ -1,0 +1,16 @@
+== Documentation code examples
+
+* Why
+* Who
+* What
+* Where
+* How
+
+[.notes]
+--
+* Why - because we want the code examples to be testable
+* Who - anyone who wants to add a code example to the docs
+* What - any code example in any language
+* Where - examples directory in the antora structure
+* How - single file per example, in the right place
+--

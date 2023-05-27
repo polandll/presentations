@@ -1,0 +1,7 @@
+=== Why
+
+* Users expect to copy/paste all of our examples and have them work.
+
+* That can't happen unless the code examples are tested.
+
+* And code examples in the repos have to be managed to be testable.

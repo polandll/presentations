@@ -1,0 +1,7 @@
+=== What
+
+* Any code example that we can run with a shell script can be included
+** CQL
+** REST
+** GraphQL
+** Document

@@ -1,0 +1,251 @@
+== Stargate
+
+Location: `stargate/docs/docs-src/stargate-develop/modules/develop/examples/`
+
+* The examples are separated into directories by type.
+* Mainly intended to manage the types, and track the various examples within that type.
+
+== Good code example
+
+[source, graphql]
+----
+# create a table with a MAP
+# DATA TYPE: TEXT, INT, MAP(TEXT, DATE)
+# Sample: btype=Editor, badge_id=1, earned = [Gold:010120, Silver:020221]
+mutation createMapTable {
+  badge: createTable (
+    keyspaceName:"library",
+    tableName: "badge",
+    partitionKeys: [
+      {name: "btype", type: {basic:TEXT}}
+    ]
+    clusteringKeys: [
+      { name: "badge_id", type: { basic: INT} }
+    ],
+    ifNotExists:true,
+    values: [
+      {name: "earned", type:{basic:LIST { basic:MAP, info:{ subTypes: [ { basic: TEXT }, {basic: DATE}]}}}}
+    ]
+  )
+}
+----
+
+[.notes]
+--
+Comments document a feature that is not easily evident. In this example, a list of maps is created, where the map pairs text with a date. What that data represents is clarified with some example data.
+--
+
+=== Details
+
+* Indentation
+* Clear variable/column names
+* Corresponds to an overall data model that is used throughout a docset.
+* Like: https://github.com/polandll/data-models/blob/main/docs-src/core/modules/library/pages/index.adoc (WIP)
+
+== REST example
+
+For example, a REST example: 
+
+[source, shell]
+----
+curl -s -L -X POST {base_rest_url}{base_rest_schema}/{rkeyspace}/tables/{rtable}/columns \
+-H "X-Cassandra-Token: {auth_token}" \
+-H  "Accept: application/json" \
+-H "Content-Type: application/json" \
+-d '{
+   "name": "email",
+   "typeDefinition": "text"
+}'
+----
+
+stored in `https://github.com/stargate/docs/blob/main/docs-src/stargate-develop/modules/develop/examples/rest/curl_add_column.sh`
+
+
+=== Explanation
+
+This example demonstrates how to add a column to a table. Note the use of Antora attributes for the values of `base_rest_url`, `best_rest_schema`, `rkeyspace`, `rtable`, and `auth_token`. The attributes are currently defined in the `site-local-\*.yaml` and `site-publish-\*.yaml` files.
+
+== Single file for single function
+
+Although the code example files *can* hold more than one example, and tags can be used to identify the example in the docs page where they are used, a single example per single file is the best policy.
+
+Why? Let's look at the testing scripts.
+
+== Test script
+
+Here's the test script portion for the add_column code example:
+
+[source, shell]
+----
+echo "add_column: "
+response=$(./curl_add_column.sh.tmp)
+assert_equals "$(get_json_value "$response" ".name")" "email"
+----
+
+This bit of shell script sets a variable `response` to the value that is returned when the code example is run. (We'll talk about the *.tmp in a moment.) The returned value is in JSON format.
+
+=== Asserts
+The `assert_equals` checks to see if the JSON formatted value returned has a variable `name` that equals `email`. If this is part of the response, it is assumed that the code has run correctly. 
+
+The asserts can be more or less complete, but in this case, it is sufficient to prove that the code is running correctly. The main purpose of the test shell script is to ensure that the code example provided will run within the environment as expected.
+
+== Variables used in test scripts
+
+* Variables set in the beginning of the shell script that correspond to the Antora attributes set. This is a duplication, but the shell script needs environment variables, not Antora attributes, to run. For example, note that the following values are set:
+
+[source, shell]
+----
+base_rest_url=http://localhost:8082
+base_rest_schema=/v2/schemas/keyspaces
+base_rest_api=/v2/keyspaces
+rkeyspace=users_keyspace
+rtable=users
+----
+
+=== Assert variables
+A few values set by the shell script to provide feedback as to the successful runs are:
+
+[source, shell]
+----
+Errors=0
+
+Green='\033[0;32m'
+Red='\033[0;31m'
+Color_Off='\033[0m'
+
+Check_Mark='\xE2\x9C\x94'
+----
+
+== Functions used in test scripts
+
+Several functions are used to streamline the scripts.
+
+=== Asserts
+
+[source, shell]
+----
+assert_equals () {
+  if [ "$1" = "$2" ]; then
+    echo -e "$Green $Check_Mark Success $Color_Off"
+  else
+    echo -e "$Red Failed $Color_Off"
+    echo -e "$Red Expected $1 to equal $2 $Color_Off"
+    Errors=$((Errors  + 1))
+  fi
+}
+----
+
+[.notes]
+--
+* assert_equals checks if two values match or not
+** The returned info is color-coded
+--
+
+=== Alternative assert 
+
+[source, json]
+----
+{ "name": "email" }
+----
+Can use a `result` file that is also stored in the examples.
+
+[source, shell]
+----
+./curl_add_column.sh.tmp | jq -r '.' > .; \
+diff <(gron HOLD) <(gron ../result/rest_curl_add_column.result)
+----
+
+Alternatively, the result can be displayed in a separate tab in a code example. Common usage is a 2-tab codeblock in AsciiDoc that has the command in one tab, and the result in another.
+
+=== JSON processing
+
+[source, shell]
+----
+get_json_value () {
+  echo $1 | jq -r $2
+}
+----
+
+[.notes]
+--
+This function echos the returned JSON results and prettifies them with the `jq` command.
+--
+
+=== Manipulation of variable definitions
+
+[source, shell]
+----
+for FILE in *;
+ do
+    if [[ "$FILE" != "test"* ]]
+    then
+      gsed "s#{base_rest_url}#$base_rest_url#; \
+      s#{base_rest_schema}#$base_rest_schema#; \
+      ...
+      s#{auth_token}#\$AUTH_TOKEN#;" \
+      $FILE > $FILE.tmp;
+      chmod 755 $FILE.tmp;
+    fi
+done
+----
+
+The curly brackets of Antora attributes must be replaced with the environment variables using `$`, so that the shell can use the variables set at the beginning of the test script. Each file is duplicated to a <file>.tmp that the script uses to run the test.
+
+=== Authorization token
+
+[source, shell]
+----
+# SET THE AUTH_TOKEN FOR ALL THE OTHER COMMANDS
+
+export AUTH_TOKEN=$(curl -s -L -X POST 'http://localhost:8081/v1/auth' \
+  -H 'Content-Type: application/json' \
+  --data-raw '{
+    "username": "cassandra",
+    "password": "cassandra"
+}' | jq -r '.authToken')
+----
+
+Most of the commands require an authorization token to interact with the tables where the data is stored.
+
+== Why this method?
+
+* Code examples can be added/removed to a test script easily.
+* If there is a requirement for additional code between examples, it can be inserted. For example, to test three variants on creating a keyspace, a `delete_keyspace.sh` example can be inserted between the variants, to delete a keyspace, and allow the same keyspace to be created with some difference (replication factor, for instance).
+
+=== More reasons
+
+* It can be automated, either with a nightly job, an Antora extension, or even as part of a GH action to build/publish the docs.
+* Different subsets of the code examples, like a Quickstart, can be tested with a different script of similar style.
+* Variant tests, like Astra DB vs DSE, can use the same script, with different variable values.
+
+== Got a better idea? 
+
+Let me know if you can think of better options.
+
+Some work to pull out the common stuff, to a separate shell script called by the "main" shell script is evident in `test_oss_common.sh`. 
+This optimization requires more work.
+
+== How to include a code example in a page
+
+....
+[tabs]
+====
+cURL command (/v2)::
++
+--
+[source, shell, subs="attributes+"]
+----
+\include::example$rest/curl_add_column.sh[]
+----
+--
+
+Result::
++
+--
+[source,plaintext]
+----
+\include::example$result/rest_curl_add_column.result[]
+----
+--
+====
+....
